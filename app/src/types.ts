@@ -1,5 +1,7 @@
 export type MarketKey = 'btc-5m' | 'btc-15m' | 'eth-5m' | 'eth-15m'
 
+export const MARKET_ORDER: MarketKey[] = ['btc-15m', 'btc-5m', 'eth-15m', 'eth-5m']
+
 export type GlancePayload = {
   asOf: number
   market: {
@@ -18,6 +20,24 @@ export type GlancePayload = {
     delta1mPct: number | null
   }
   edgeCents: number | null
+  divergenceCents: number | null
+  moveScore: number
   disclaimer: string
   sources: string[]
 }
+
+export type MarketsPayload = {
+  asOf: number
+  ranked: GlancePayload[]
+  top: MarketKey
+  disclaimer: string
+}
+
+export type PositionsPayload = {
+  asOf: number
+  lines: string[]
+  count: number
+  disclaimer: string
+}
+
+export type Screen = 'glance' | 'moved' | 'positions' | 'pairing'

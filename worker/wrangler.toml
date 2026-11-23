@@ -1,9 +1,13 @@
 name = "edgeglass"
 main = "src/index.ts"
 compatibility_date = "2026-11-23"
+account_id = "87bc74c00afb81de01b3ac8af0480115"
 
-# Local D1 only for Day 1. No remote database is created or migrated yet.
+[triggers]
+crons = ["* * * * *"]
+
+# Local + production D1. database_id is filled after the remote DB is created.
 [[d1_databases]]
 binding = "DB"
-database_name = "edgeglass-dev"
-database_id = "local-edgeglass-dev"
+database_name = "edgeglass"
+database_id = "cfd54001-9266-4934-9dcf-da565577b1a6"

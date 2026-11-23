@@ -1,0 +1,111 @@
+{
+  "asOf": 1795422476847,
+  "ranked": [
+    {
+      "asOf": 1795422475933,
+      "market": {
+        "key": "btc-15m",
+        "coin": "BTC",
+        "window": "15m",
+        "slug": "btc-updown-15m-1795421700",
+        "upMid": 0.295,
+        "upDelta1mCents": null,
+        "secondsLeft": 124,
+        "favored": "DOWN"
+      },
+      "hyperliquid": {
+        "coin": "BTC",
+        "mid": 61259.5,
+        "delta1mPct": null
+      },
+      "edgeCents": null,
+      "divergenceCents": null,
+      "moveScore": 0,
+      "disclaimer": "Not financial advice · paper/testnet",
+      "sources": [
+        "polymarket",
+        "hyperliquid"
+      ]
+    },
+    {
+      "asOf": 1795422476847,
+      "market": {
+        "key": "btc-5m",
+        "coin": "BTC",
+        "window": "5m",
+        "slug": "btc-updown-5m-1795422300",
+        "upMid": 0.855,
+        "upDelta1mCents": null,
+        "secondsLeft": 123,
+        "favored": "UP"
+      },
+      "hyperliquid": {
+        "coin": "BTC",
+        "mid": 61259.5,
+        "delta1mPct": null
+      },
+      "edgeCents": null,
+      "divergenceCents": null,
+      "moveScore": 0,
+      "disclaimer": "Not financial advice · paper/testnet",
+      "sources": [
+        "polymarket",
+        "hyperliquid"
+      ]
+    },
+    {
+      "asOf": 1795422476847,
+      "market": {
+        "key": "eth-15m",
+        "coin": "ETH",
+        "window": "15m",
+        "slug": "eth-updown-15m-1795421700",
+        "upMid": 0.985,
+        "upDelta1mCents": null,
+        "secondsLeft": 123,
+        "favored": "UP"
+      },
+      "hyperliquid": {
+        "coin": "ETH",
+        "mid": 1720.65,
+        "delta1mPct": null
+      },
+      "edgeCents": null,
+      "divergenceCents": null,
+      "moveScore": 0,
+      "disclaimer": "Not financial advice · paper/testnet",
+      "sources": [
+        "polymarket",
+        "hyperliquid"
+      ]
+    },
+    {
+      "asOf": 1795422476847,
+      "market": {
+        "key": "eth-5m",
+        "coin": "ETH",
+        "window": "5m",
+        "slug": "eth-updown-5m-1795422300",
+        "upMid": 0.925,
+        "upDelta1mCents": null,
+        "secondsLeft": 123,
+        "favored": "UP"
+      },
+      "hyperliquid": {
+        "coin": "ETH",
+        "mid": 1720.65,
+        "delta1mPct": null
+      },
+      "edgeCents": null,
+      "divergenceCents": null,
+      "moveScore": 0,
+      "disclaimer": "Not financial advice · paper/testnet",
+      "sources": [
+        "polymarket",
+        "hyperliquid"
+      ]
+    }
+  ],
+  "top": "btc-15m",
+  "disclaimer": "Not financial advice · paper/testnet"
+}

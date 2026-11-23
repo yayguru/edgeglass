@@ -186,6 +186,20 @@ function consoleMessages(entries) {
 }
 
 async function main() {
+  console.log('[smoke] applying local D1 migrations')
+  const { spawnSync } = await import('node:child_process')
+  const mig = spawnSync('npx', ['wrangler', 'd1', 'migrations', 'apply', 'edgeglass', '--local', '--force'], {
+    cwd: WORKER,
+    encoding: 'utf8',
+    env: { ...process.env, FORCE_COLOR: '0', WRANGLER_LOG: 'error' },
+    input: 'y\n',
+  })
+  if (mig.status !== 0) {
+    console.warn('[smoke] d1 migrate warning', (mig.stderr || mig.stdout || '').slice(0, 400))
+  } else {
+    console.log('[smoke] d1 migrate ok')
+  }
+
   console.log('[smoke] starting worker')
   spawnLogged('worker', 'npx', ['wrangler', 'dev', '--port', '8787', '--ip', '127.0.0.1'], {
     cwd: WORKER,
@@ -215,6 +229,25 @@ async function main() {
   console.log(
     `[smoke] live feeds OK  UP ${glance.market.upMid}  HL ${glance.hyperliquid.mid}  slug ${glance.market.slug}`,
   )
+
+  const markets = await getJson(`${API}/markets`)
+  writeFileSync(join(OUT, 'markets.json'), JSON.stringify(markets, null, 2) + '\n')
+  if (!Array.isArray(markets.ranked) || markets.ranked.length !== 4) {
+    throw new Error('GET /markets must return 4 ranked markets')
+  }
+  if (markets.ranked.some(m => (m.sources || []).includes('coingecko'))) {
+    throw new Error('CoinGecko is not an allowed source')
+  }
+  console.log('[smoke] ranked', markets.ranked.map(m => `${m.market.key}:${m.moveScore}`).join(' '))
+
+  const pair = await (await fetch(`${API}/pairing`, { method: 'POST' })).json()
+  if (!pair.code || !/^[A-HJ-NP-Z2-9]{6}$/.test(pair.code)) {
+    throw new Error('POST /pairing did not return a 6-char code')
+  }
+  const st = await getJson(`${API}/pairing/${pair.code}`)
+  if (st.status !== 'pending') throw new Error(`expected pending pairing, got ${st.status}`)
+  writeFileSync(join(OUT, 'pairing.json'), JSON.stringify({ code_len: pair.code.length, status: st.status }, null, 2) + '\n')
+  console.log('[smoke] pairing pending, code length', pair.code.length)
 
   console.log('[smoke] starting vite')
   spawnLogged('vite', 'npx', ['vite', '--host', '127.0.0.1', '--port', '5173'], {
@@ -282,6 +315,21 @@ async function main() {
     { timeoutMs: 30_000, label: '[edgeglass] glance live' },
   )
   console.log('[smoke] glance live in webview')
+
+  const sinceAfterLive = sinceId
+  await postJson(`${SIM}/api/input`, { action: 'down' })
+  await waitFor(
+    async () => {
+      const data = await getJson(`${SIM}/api/console?since_id=${sinceId}`)
+      for (const entry of data.entries ?? []) {
+        sinceId = Math.max(sinceId, entry.id)
+        allMsgs.push(entry)
+      }
+      return consoleMessages(allMsgs).includes('[edgeglass] swipe')
+    },
+    { timeoutMs: 10_000, label: '[edgeglass] swipe' },
+  )
+  console.log('[smoke] swipe ok')
 
   // Let the first upgrade paint.
   await sleep(800)

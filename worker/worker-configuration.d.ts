@@ -1,4 +1,3 @@
-// Minimal typings so `tsc` passes before `wrangler types` is run.
 interface D1Database {
   prepare(query: string): D1PreparedStatement
 }
@@ -12,4 +11,6 @@ interface D1PreparedStatement {
 
 interface Env {
   DB?: D1Database
+  EDGEGLASS_TG_BOT_TOKEN?: string
+  TELEGRAM_WEBHOOK_SECRET?: string
 }

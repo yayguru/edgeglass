@@ -1,21 +1,23 @@
 {
-  "asOf": 1795421888126,
+  "asOf": 1795422475933,
   "market": {
     "key": "btc-15m",
     "coin": "BTC",
     "window": "15m",
     "slug": "btc-updown-15m-1795421700",
-    "upMid": 0.255,
+    "upMid": 0.295,
     "upDelta1mCents": null,
-    "secondsLeft": 712,
+    "secondsLeft": 124,
     "favored": "DOWN"
   },
   "hyperliquid": {
     "coin": "BTC",
-    "mid": 61186.5,
+    "mid": 61259.5,
     "delta1mPct": null
   },
   "edgeCents": null,
+  "divergenceCents": null,
+  "moveScore": 0,
   "disclaimer": "Not financial advice · paper/testnet",
   "sources": [
     "polymarket",

@@ -13,3 +13,7 @@ coverage/
 
 smoke-out/*.log
 smoke-out/exit-dialog-*ms*.png
+.dev.vars
+worker/.dev.vars
+worker/.webhook-secret
+.webhook-secret

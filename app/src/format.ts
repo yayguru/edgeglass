@@ -1,6 +1,6 @@
-import type { GlancePayload } from './types'
+import type { GlancePayload, PositionsPayload } from './types'
 
-const HINT = '> tap: paper UP $5 · hold: voice'
+const HINT = '> swipe markets · hold menu · tap paper later'
 const DISCLAIMER = 'Not financial advice · paper/testnet'
 
 export function loadingText(): string {
@@ -42,7 +42,7 @@ function fmtPct(p: number | null): string {
 
 function fmtEdge(cents: number | null): string {
   if (cents === null) return 'edge --'
-  const sign = cents > 0 ? '+' : cents < 0 ? '' : '+'
+  const sign = cents > 0 ? '+' : ''
   return `edge ${sign}${cents}c`
 }
 
@@ -52,7 +52,34 @@ export function formatGlance(g: GlancePayload): string {
   const line1 = `${m.coin} ${m.window} UP ${up} ${fmtDeltaCents(m.upDelta1mCents)} · ${fmtTime(m.secondsLeft)}`
   const hl = g.hyperliquid
   const mid = hl.mid === null ? '--' : fmtPx(hl.mid)
-  const line2 = `HL ${hl.coin} ${mid} ${fmtPct(hl.delta1mPct)} · ${fmtEdge(g.edgeCents)}`
+  const div = g.divergenceCents === null ? '' : ` · div ${g.divergenceCents >= 0 ? '+' : ''}${g.divergenceCents}c`
+  const line2 = `HL ${hl.coin} ${mid} ${fmtPct(hl.delta1mPct)} · ${fmtEdge(g.edgeCents)}${div}`
   const disclaimer = g.disclaimer || DISCLAIMER
   return `${line1}\n${line2}\n${HINT}\n${disclaimer}`
 }
+
+export function formatMovedLines(ranked: GlancePayload[]): string[] {
+  const lines: string[] = []
+  ranked.slice(0, 20).forEach((g, i) => {
+    const m = g.market
+    const up = m.upMid === null ? '--' : fmtCents(m.upMid)
+    const d = fmtDeltaCents(m.upDelta1mCents)
+    const e = g.edgeCents === null ? 'e--' : `e${g.edgeCents >= 0 ? '+' : ''}${g.edgeCents}`
+    const line = `${i + 1} ${m.coin} ${m.window} UP ${up} ${d} ${e}`
+    lines.push(line.slice(0, 64))
+  })
+  if (!lines.length) lines.push('No markets yet')
+  return lines
+}
+
+export function formatPositionLines(p: PositionsPayload): string[] {
+  if (!p.lines.length) return ['No positions yet · paper default', 'Pair Telegram, then /wallet and /hl']
+  return p.lines.slice(0, 20).map(s => s.slice(0, 64))
+}
+
+export function formatPairing(code: string, status: string): string {
+  const st = status === 'linked' ? 'Linked. Alerts will go to Telegram.' : 'Send this code to @EdgeGlass_bot.'
+  return `Pair Telegram\n${code}\n${st}\n${DISCLAIMER}`
+}
+
+export { DISCLAIMER }

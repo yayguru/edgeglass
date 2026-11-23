@@ -5,4 +5,9 @@
 [edgeglass] page created: success
 [edgeglass] ready
 [ShadowTimers] setInterval id=2 delay=3000ms queued (queue=2)
-[edgeglass] glance live BTC 15m UP 0.255 HL 61186.5 slug btc-updown-15m-1795421700
+[edgeglass] glance live BTC 15m UP 0.405 HL 61272 slug btc-updown-15m-1795421700
+[edgeglass] ranked btc-15m,btc-5m,eth-15m,eth-5m
+[Simulator] Flutter Bridge intercepted: evenAppMessage
+[edgeglass] swipe btc-5m
+[EvenAppBridge] EvenHub event: {"jsonData":{"containerID":1,"containerName":"glance","eventType":2},"textEvent":{"containerID":1,"containerName":"glance","eventType":2}}
+[Simulator] Flutter Bridge intercepted: evenAppMessage

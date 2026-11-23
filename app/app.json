@@ -11,9 +11,12 @@
       "desc": "Loads live Polymarket odds and Hyperliquid mids through the EdgeGlass worker only.",
       "whitelist": [
         "http://127.0.0.1:8787",
-        "http://localhost:8787"
+        "http://localhost:8787",
+        "https://edgeglass.merjkerm.workers.dev"
       ]
     }
   ],
-  "supported_languages": ["en"]
+  "supported_languages": [
+    "en"
+  ]
 }
