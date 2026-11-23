@@ -5,6 +5,7 @@ export const MENU = {
   POSITIONS: 2,
   PAIR: 3,
   PAUSE: 4,
+  SEND: 5,
 } as const
 
 export function buildMenu(alertsPaused: boolean): MenuContainerProperty {
@@ -17,6 +18,7 @@ export function buildMenu(alertsPaused: boolean): MenuContainerProperty {
         itemName: alertsPaused ? 'Resume alerts' : 'Pause alerts',
         itemID: MENU.PAUSE,
       }),
+      new MenuItemProperty({ itemName: 'Send to Telegram', itemID: MENU.SEND }),
     ],
   })
 }

@@ -40,7 +40,7 @@ Headless smoke (Xvfb + automation port; Linux with `libwebkit2gtk-4.1-0`):
 npm test && npm run smoke
 ```
 
-On the glasses: swipe up/down cycles BTC/ETH 5m/15m in "what moved" order; the contextual menu opens What moved, Positions, and Pair Telegram. Double-tap on the glance card opens the system exit dialog; on other screens it goes back.
+On the glasses: tap the glance card for a paper Confirm (default BUY UP $5 at the current mid; swipe or double-tap cancels, tap confirms). Long-press captures glasses PCM and sends it to our Worker for Whisper + a rule grammar; the result always lands on Confirm, never auto-fills. Swipe cycles BTC/ETH 5m/15m in "what moved" order. The contextual menu opens What moved, Positions, Pair Telegram, and Send to Telegram. Double-tap on the glance card opens the system exit dialog; on other screens it goes back.
 
 ## Production Worker
 
@@ -59,7 +59,7 @@ https://edgeglass.merjkerm.workers.dev/health
   - Polymarket Data API v2 (`https://data-api.polymarket.com/v2/positions`) for read-only positions
   - Hyperliquid info (`https://api.hyperliquid.xyz/info`, `allMids` and `clearinghouseState`) — mainnet **read-only**
   - Telegram Bot API, only to send our own replies and receive webhook/poll updates
-- No CoinGecko, no Binance, no LLM, no other price oracles. **Telegram message bodies are never stored and never sent to any AI.**
+- No CoinGecko, no Binance, no trading LLM, no other price oracles. Voice uses open-source Whisper on our Worker (Workers AI) and a rule grammar; glasses PCM never goes to Telegram or a general LLM. **Telegram message bodies are never stored and never sent to any AI.**
 - "Edge" and "divergence" are documented heuristics (UP mid vs a naive fair from the Hyperliquid 1-minute return). They are not a model and not advice. "What moved" ranks the four markets by those 1-minute moves.
 - 1-minute history is kept in memory and in D1 so a cold isolate can still compute deltas.
 
@@ -82,11 +82,11 @@ A 22 Nov simulator smoke used **only the stock official template** and is **not*
 
 ## Safety
 
-- Paper ledger is the default write path (Confirm card lands in a later day).
+- Paper ledger is the default write path: Confirm card, default $5, daily cap $50, owner key in `localStorage` (`edgeglass-paper-owner`). No auto-execute from voice.
 - Hyperliquid: read-only mids and optional read-only positions; testnet orders only if a funded testnet key is supplied later as a Worker secret, never in the app.
 - Footer on the glance card: `Not financial advice · paper/testnet`.
 - No secrets in the client bundle. `.env` / `.dev.vars` are gitignored.
-- Telegram: the bot only sees chats it is added to; message text is parsed for commands/addresses and is not logged or forwarded to any AI. STT, when added, is an open-source Whisper model on our own backend.
+- Telegram: the bot only sees chats it is added to; message text is parsed for commands/addresses and is not logged or forwarded to any AI. STT is open-source Whisper on our Worker (`@cf/openai/whisper-large-v3-turbo`, fallback `@cf/openai/whisper`); only glasses PCM is accepted.
 
 ## Scripts
 
@@ -94,8 +94,8 @@ A 22 Nov simulator smoke used **only the stock official template** and is **not*
 |---|---|
 | `npm run dev:worker` | Cloudflare Worker locally on :8787 |
 | `npm run dev:app` | Vite app on :5173 |
-| `npm test` | Command parser + edge heuristic unit tests |
-| `npm run smoke` | Headless simulator: boot, live feeds, swipe, pairing, lit pixels, exit |
+| `npm test` | Command parser, edge heuristic, and voice-grammar unit tests |
+| `npm run smoke` | Headless simulator: boot, live feeds, swipe, paper Confirm, lit pixels, exit |
 | `npm run pack` | `evenhub pack` → `.ehpk` (optional, later) |
 | `node scripts/tg-poll.mjs` | Local Telegram long-poll → local worker webhook |
 

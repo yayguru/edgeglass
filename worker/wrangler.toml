@@ -11,3 +11,6 @@ crons = ["* * * * *"]
 binding = "DB"
 database_name = "edgeglass"
 database_id = "cfd54001-9266-4934-9dcf-da565577b1a6"
+
+[ai]
+binding = "AI"

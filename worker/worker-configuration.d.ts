@@ -9,8 +9,13 @@ interface D1PreparedStatement {
   run(): Promise<unknown>
 }
 
+interface AiRunner {
+  run(model: string, input: Record<string, unknown>): Promise<unknown>
+}
+
 interface Env {
   DB?: D1Database
+  AI?: AiRunner
   EDGEGLASS_TG_BOT_TOKEN?: string
   TELEGRAM_WEBHOOK_SECRET?: string
 }

@@ -40,4 +40,23 @@ export type PositionsPayload = {
   disclaimer: string
 }
 
-export type Screen = 'glance' | 'moved' | 'positions' | 'pairing'
+export type Screen = 'glance' | 'moved' | 'positions' | 'pairing' | 'confirm'
+
+export type ConfirmOrder = {
+  market: MarketKey
+  side: 'UP' | 'DOWN' | 'CLOSE'
+  sizeUsd: number
+  price: number | null
+  source: 'tap' | 'voice'
+}
+
+export type VoiceIntent =
+  | { kind: 'moved' }
+  | { kind: 'positions' }
+  | { kind: 'pause' }
+  | { kind: 'resume' }
+  | { kind: 'send' }
+  | { kind: 'market'; key: MarketKey }
+  | { kind: 'trade'; market: MarketKey | null; side: 'UP' | 'DOWN'; sizeUsd: number }
+  | { kind: 'close'; market: MarketKey | 'all' }
+  | { kind: 'unknown'; transcript: string }

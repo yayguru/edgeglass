@@ -1,8 +1,12 @@
 import { tickAlerts } from './alerts'
 import { loadPositionRows, loadPositionsText } from './assemble-positions'
 import { buildGlance, buildMarkets } from './feeds'
+import { parseVoiceIntent } from './grammar'
+import { PAPER_DEFAULT_USD, recordPaperFill } from './paper'
 import { createPairing, getPairing, parseCode } from './pairing'
 import { formatPositionLine, isEthAddress } from './positions-pm'
+import { shareCardToTelegram } from './share'
+import { transcribePcm } from './stt'
 import { handleTelegramUpdate, webhookSecretOk } from './telegram'
 import { DEFAULT_MARKET, DISCLAIMER, isMarketKey } from './types'
 
@@ -78,6 +82,7 @@ export default {
     if (url.pathname === '/positions' && request.method === 'GET') {
       const pm = url.searchParams.get('pm') ?? undefined
       const hl = url.searchParams.get('hl') ?? undefined
+      const owner = url.searchParams.get('owner') ?? undefined
       const code = parseCode(url.searchParams.get('code') ?? '')
       let telegramUserId: string | undefined
       if (code && env.DB) {
@@ -90,7 +95,7 @@ export default {
       if (pm && !isEthAddress(pm)) return json({ error: 'bad pm address' }, 400)
       if (hl && !isEthAddress(hl)) return json({ error: 'bad hl address' }, 400)
       try {
-        const rows = await loadPositionRows(env.DB, { telegramUserId, pm, hl })
+        const rows = await loadPositionRows(env.DB, { telegramUserId, owner, pm, hl })
         return json({
           asOf: Date.now(),
           lines: rows.map(formatPositionLine),
@@ -122,6 +127,70 @@ export default {
       }
       const result = await tickAlerts(env)
       return json({ ok: true, ...result })
+    }
+
+
+    if (url.pathname === '/paper/fill' && request.method === 'POST') {
+      if (!env.DB) return json({ error: 'no database' }, 503)
+      let body: { owner?: string; market?: string; side?: string; sizeUsd?: number; price?: number | null }
+      try {
+        body = (await request.json()) as typeof body
+      } catch {
+        return json({ error: 'bad json' }, 400)
+      }
+      const owner = (body.owner || '').trim()
+      const market = body.market || ''
+      const side = (body.side || '').toUpperCase()
+      const sizeUsd = Number(body.sizeUsd ?? PAPER_DEFAULT_USD)
+      if (!owner || !market || !side) return json({ error: 'missing fields' }, 400)
+      if (!['UP', 'DOWN', 'LONG', 'SHORT', 'CLOSE'].includes(side)) return json({ error: 'bad side' }, 400)
+      const result = await recordPaperFill(env.DB, {
+        owner,
+        market,
+        side,
+        sizeUsd,
+        price: body.price ?? null,
+      })
+      if ('error' in result) return json({ error: 'cap', spent: result.spent, cap: result.cap, disclaimer: DISCLAIMER }, 400)
+      return json({ fill: result, disclaimer: DISCLAIMER })
+    }
+
+    if (url.pathname === '/intent' && request.method === 'POST') {
+      let body: { text?: string }
+      try {
+        body = (await request.json()) as typeof body
+      } catch {
+        return json({ error: 'bad json' }, 400)
+      }
+      const textIn = (body.text || '').trim()
+      if (!textIn) return json({ error: 'empty' }, 400)
+      return json({ transcript: textIn, intent: parseVoiceIntent(textIn), disclaimer: DISCLAIMER })
+    }
+
+    if (url.pathname === '/stt' && request.method === 'POST') {
+      try {
+        const buf = new Uint8Array(await request.arrayBuffer())
+        const transcript = await transcribePcm(env.AI, buf)
+        return json({ transcript, intent: parseVoiceIntent(transcript), disclaimer: DISCLAIMER })
+      } catch (err) {
+        return json({ error: 'stt', message: err instanceof Error ? err.message : String(err) }, 503)
+      }
+    }
+
+    if (url.pathname === '/telegram/share' && request.method === 'POST') {
+      let body: { code?: string; text?: string }
+      try {
+        body = (await request.json()) as typeof body
+      } catch {
+        return json({ error: 'bad json' }, 400)
+      }
+      const code = parseCode(body.code || '')
+      if (!code) return json({ error: 'bad code' }, 400)
+      const card = (body.text || '').trim()
+      if (!card) return json({ error: 'empty' }, 400)
+      const result = await shareCardToTelegram(env, code, card)
+      if (!result.ok) return json({ error: result.reason }, result.reason === 'no-token' ? 503 : 409)
+      return json({ ok: true })
     }
 
     if (url.pathname === '/positions.txt' && request.method === 'GET') {

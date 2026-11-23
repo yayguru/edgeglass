@@ -4,6 +4,7 @@ import { hyperliquidPositions } from './hyperliquid'
 
 export type PositionQuery = {
   telegramUserId?: string
+  owner?: string
   pm?: string
   hl?: string
 }
@@ -14,7 +15,8 @@ export async function loadPositionRows(db: D1Database | undefined, q: PositionQu
   let hl = q.hl
   let uid = q.telegramUserId
 
-  if (db && !uid && !pm && !hl) {
+  const owner = q.owner
+  if (db && !uid && !pm && !hl && !owner) {
     return rows
   }
   if (db && uid) {
@@ -24,22 +26,16 @@ export async function loadPositionRows(db: D1Database | undefined, q: PositionQu
       .first<{ pm: string | null; hl: string | null }>()
     pm = pm || w?.pm || undefined
     hl = hl || w?.hl || undefined
+  }
+  if (db && (uid || owner)) {
     const { results } = await db
-      .prepare('SELECT market_key AS market, side, size_usd AS size, price FROM paper_fills WHERE telegram_user_id = ? OR telegram_user_id IS NULL LIMIT 20')
-      .bind(uid)
+      .prepare(
+        `SELECT market_key AS market, side, size_usd AS size, price FROM paper_fills
+         WHERE owner = ? OR telegram_user_id = ?
+         ORDER BY created_at DESC LIMIT 20`,
+      )
+      .bind(owner ?? uid, uid ?? owner)
       .all<{ market: MarketKey; side: string; size: number; price: number | null }>()
-    for (const f of results) {
-      rows.push({
-        source: 'paper',
-        title: f.market,
-        detail: `${f.side} $${f.size}${f.price != null ? ` @${Math.round(f.price * 100)}c` : ''}`,
-        pnl: null,
-      })
-    }
-  } else if (db) {
-    const { results } = await db
-      .prepare('SELECT market_key AS market, side, size_usd AS size, price FROM paper_fills WHERE telegram_user_id IS NULL LIMIT 20')
-      .all<{ market: string; side: string; size: number; price: number | null }>()
     for (const f of results) {
       rows.push({
         source: 'paper',

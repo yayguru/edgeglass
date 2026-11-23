@@ -5,24 +5,44 @@ import {
   TextContainerUpgrade,
   OsEventTypeList,
 } from '@evenrealities/even_hub_sdk'
-import { createPairing, fetchMarkets, fetchPairing, fetchPositions } from './api'
+import {
+  createPairing,
+  fetchMarkets,
+  fetchPairing,
+  fetchPositionsFor,
+  paperOwner,
+  postPaperFill,
+  postStt,
+  shareToTelegram,
+} from './api'
 import { eventTypeOf } from './events'
 import {
   errorText,
+  formatConfirm,
   formatGlance,
   formatMovedLines,
   formatPairing,
   formatPositionLines,
+  formatShareResult,
   loadingText,
 } from './format'
 import { buildMenu, MENU } from './menu'
 import { showListScreen, showTextScreen } from './screens'
-import { MARKET_ORDER, type GlancePayload, type MarketKey, type Screen } from './types'
+import {
+  MARKET_ORDER,
+  type ConfirmOrder,
+  type GlancePayload,
+  type MarketKey,
+  type Screen,
+  type VoiceIntent,
+} from './types'
 
 const POLL_MS = 3000
 const RENDER_DEBOUNCE_MS = 150
+const PAPER_USD = 5
 
 const bridge = await waitForEvenAppBridge()
+const owner = paperOwner()
 
 const startText = new TextContainerProperty({
   xPosition: 0,
@@ -65,6 +85,9 @@ let currentContent = loadingText()
 let lastRendered = ''
 let renderTimer: number | null = null
 let pollTimer: number | null = null
+let pending: ConfirmOrder | null = null
+let listening = false
+const pcmChunks: Uint8Array[] = []
 
 function orderIndex(key: MarketKey): number {
   const i = rankedKeys.indexOf(key)
@@ -76,6 +99,14 @@ function cycle(delta: number): MarketKey {
   const next = keys[(orderIndex(currentKey) + delta + keys.length) % keys.length]
   currentKey = next
   return next
+}
+
+function midOf(key: MarketKey): number | null {
+  return marketsByKey.get(key)?.market.upMid ?? null
+}
+
+function defaultConfirm(source: ConfirmOrder['source'] = 'tap'): ConfirmOrder {
+  return { market: currentKey, side: 'UP', sizeUsd: PAPER_USD, price: midOf(currentKey), source }
 }
 
 function scheduleGlanceRender(content: string) {
@@ -118,7 +149,7 @@ async function paintMoved() {
 }
 
 async function paintPositions() {
-  const payload = await fetchPositions(pairingCode ?? undefined)
+  const payload = await fetchPositionsFor(owner, pairingCode ?? undefined)
   const ok = await showListScreen(
     bridge,
     'Positions · paper/testnet',
@@ -149,7 +180,14 @@ async function paintPairing() {
   console.log('[edgeglass] screen pairing', pairingStatus)
 }
 
-async function go(next: Screen, opts: { rebuildGlance?: boolean } = {}) {
+async function paintConfirm(note?: string) {
+  if (!pending) pending = defaultConfirm()
+  const ok = await showTextScreen(bridge, 'confirm', formatConfirm(pending, note), alertsPaused)
+  if (!ok) console.warn('[edgeglass] rebuild confirm failed')
+  console.log('[edgeglass] screen confirm', pending.side, pending.market, pending.sizeUsd)
+}
+
+async function go(next: Screen, opts: { rebuildGlance?: boolean; note?: string } = {}) {
   screen = next
   if (next === 'glance') {
     await paintGlance(opts.rebuildGlance ?? true)
@@ -159,6 +197,140 @@ async function go(next: Screen, opts: { rebuildGlance?: boolean } = {}) {
   if (next === 'moved') return paintMoved()
   if (next === 'positions') return paintPositions()
   if (next === 'pairing') return paintPairing()
+  if (next === 'confirm') return paintConfirm(opts.note)
+}
+
+async function openConfirm(order: ConfirmOrder, note?: string) {
+  pending = order
+  await go('confirm', { note })
+}
+
+async function confirmPaper() {
+  if (!pending) return
+  const result = await postPaperFill({
+    owner,
+    market: pending.market,
+    side: pending.side,
+    sizeUsd: pending.sizeUsd,
+    price: pending.price,
+  })
+  if (result.error === 'cap') {
+    await paintConfirm(`cap $${result.spent}/${result.cap} today · swipe=cancel`)
+    console.log('[edgeglass] paper cap')
+    return
+  }
+  if (!result.fill) {
+    await paintConfirm('fill failed · swipe=cancel')
+    console.log('[edgeglass] paper fill failed')
+    return
+  }
+  console.log('[edgeglass] paper filled', result.fill.id)
+  pending = null
+  await go('glance')
+}
+
+async function shareCard() {
+  const g = marketsByKey.get(currentKey)
+  const card = g ? formatGlance(g) : 'EdgeGlass glance unavailable'
+  if (!pairingCode || pairingStatus !== 'linked') {
+    const ok = await showTextScreen(bridge, 'pairing', formatShareResult(false, 'unlinked'), alertsPaused)
+    if (ok) screen = 'pairing'
+    console.log('[edgeglass] share unlinked')
+    if (!pairingCode) void paintPairing()
+    return
+  }
+  const result = await shareToTelegram(pairingCode, card)
+  const ok = await showTextScreen(
+    bridge,
+    'glance',
+    formatShareResult(!!result.ok, result.error),
+    alertsPaused,
+  )
+  screen = 'glance'
+  if (ok) console.log('[edgeglass] share', result.ok ? 'sent' : result.error)
+}
+
+async function applyIntent(intent: VoiceIntent, transcript: string) {
+  console.log('[edgeglass] intent', intent.kind, transcript.slice(0, 80))
+  if (intent.kind === 'moved') return go('moved')
+  if (intent.kind === 'positions') return go('positions')
+  if (intent.kind === 'send') return shareCard()
+  if (intent.kind === 'pause' || intent.kind === 'resume') {
+    alertsPaused = intent.kind === 'pause'
+    console.log('[edgeglass] alerts', alertsPaused ? 'paused' : 'resumed')
+    return go(screen === 'confirm' ? 'glance' : screen, { rebuildGlance: true })
+  }
+  if (intent.kind === 'market') {
+    currentKey = intent.key
+    return go('glance')
+  }
+  if (intent.kind === 'close') {
+    return openConfirm(
+      {
+        market: intent.market === 'all' ? currentKey : intent.market,
+        side: 'CLOSE',
+        sizeUsd: 0,
+        price: null,
+        source: 'voice',
+      },
+      `voice: ${transcript.slice(0, 40)}`,
+    )
+  }
+  if (intent.kind === 'trade') {
+    if (intent.market) currentKey = intent.market
+    return openConfirm(
+      {
+        market: currentKey,
+        side: intent.side,
+        sizeUsd: intent.sizeUsd,
+        price: midOf(currentKey),
+        source: 'voice',
+      },
+      `voice: ${transcript.slice(0, 40)}`,
+    )
+  }
+  await openConfirm(defaultConfirm('voice'), `unrecognized: ${transcript.slice(0, 40)}`)
+}
+
+async function startListen() {
+  if (listening) return
+  listening = true
+  pcmChunks.length = 0
+  try {
+    await bridge.audioControl(true)
+  } catch (err) {
+    console.warn('[edgeglass] audioControl on failed', err instanceof Error ? err.message : err)
+  }
+  console.log('[edgeglass] listening')
+}
+
+async function stopListenAndTranscribe() {
+  if (!listening) return
+  listening = false
+  try {
+    await bridge.audioControl(false)
+  } catch {
+    /* ignore */
+  }
+  const total = pcmChunks.reduce((n, c) => n + c.byteLength, 0)
+  const pcm = new Uint8Array(total)
+  let off = 0
+  for (const c of pcmChunks) {
+    pcm.set(c, off)
+    off += c.byteLength
+  }
+  pcmChunks.length = 0
+  console.log('[edgeglass] listen end', total, 'bytes')
+  if (total < 3200) {
+    await openConfirm(defaultConfirm('voice'), 'no audio captured · tap to confirm default')
+    return
+  }
+  const result = await postStt(pcm)
+  if (result.intent && result.transcript) {
+    await applyIntent(result.intent, result.transcript)
+    return
+  }
+  await openConfirm(defaultConfirm('voice'), result.message || result.error || 'stt unavailable')
 }
 
 async function refresh() {
@@ -199,15 +371,20 @@ function cleanup() {
   cleanedUp = true
   if (pollTimer !== null) window.clearInterval(pollTimer)
   if (renderTimer !== null) window.clearTimeout(renderTimer)
+  if (listening) void bridge.audioControl(false)
   unsubscribe()
 }
 
 const unsubscribe = bridge.onEvenHubEvent(event => {
+  const pcm = event.audioEvent?.audioPcm
+  if (pcm && listening) pcmChunks.push(pcm)
+
   const itemID = event.menuItemClickEvent?.itemID
   if (itemID !== undefined) {
     if (itemID === MENU.MOVED) void go('moved')
     else if (itemID === MENU.POSITIONS) void go('positions')
     else if (itemID === MENU.PAIR) void go('pairing')
+    else if (itemID === MENU.SEND) void shareCard()
     else if (itemID === MENU.PAUSE) {
       alertsPaused = !alertsPaused
       console.log('[edgeglass] alerts', alertsPaused ? 'paused' : 'resumed')
@@ -220,12 +397,22 @@ const unsubscribe = bridge.onEvenHubEvent(event => {
   const textType = eventTypeOf(event.textEvent)
   const listType = eventTypeOf(event.listEvent)
 
+  if (sysType === OsEventTypeList.LONG_PRESS_EVENT || textType === OsEventTypeList.LONG_PRESS_EVENT) {
+    void startListen()
+    return
+  }
+  if (sysType === OsEventTypeList.LONG_PRESS_RELEASE_EVENT || textType === OsEventTypeList.LONG_PRESS_RELEASE_EVENT) {
+    void stopListenAndTranscribe()
+    return
+  }
+
   if (
     sysType === OsEventTypeList.DOUBLE_CLICK_EVENT ||
     textType === OsEventTypeList.DOUBLE_CLICK_EVENT ||
     listType === OsEventTypeList.DOUBLE_CLICK_EVENT
   ) {
     if (screen !== 'glance') {
+      pending = null
       void go('glance')
       return
     }
@@ -234,10 +421,18 @@ const unsubscribe = bridge.onEvenHubEvent(event => {
   }
 
   const scroll = textType ?? sysType
-  if (screen === 'glance' && (scroll === OsEventTypeList.SCROLL_TOP_EVENT || scroll === OsEventTypeList.SCROLL_BOTTOM_EVENT)) {
-    const key = cycle(scroll === OsEventTypeList.SCROLL_BOTTOM_EVENT ? 1 : -1)
-    console.log(`[edgeglass] swipe ${key}`)
-    void paintGlance(false)
+  if (scroll === OsEventTypeList.SCROLL_TOP_EVENT || scroll === OsEventTypeList.SCROLL_BOTTOM_EVENT) {
+    if (screen === 'confirm') {
+      pending = null
+      console.log('[edgeglass] confirm cancelled')
+      void go('glance')
+      return
+    }
+    if (screen === 'glance') {
+      const key = cycle(scroll === OsEventTypeList.SCROLL_BOTTOM_EVENT ? 1 : -1)
+      console.log(`[edgeglass] swipe ${key}`)
+      void paintGlance(false)
+    }
     return
   }
 
@@ -252,7 +447,14 @@ const unsubscribe = bridge.onEvenHubEvent(event => {
   }
 
   if (sysType === OsEventTypeList.CLICK_EVENT || textType === OsEventTypeList.CLICK_EVENT) {
-    if (screen === 'glance') console.log('[edgeglass] tap (paper confirm not wired yet)')
+    if (screen === 'confirm') {
+      void confirmPaper()
+      return
+    }
+    if (screen === 'glance') {
+      void openConfirm(defaultConfirm('tap'))
+      return
+    }
     return
   }
 

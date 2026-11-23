@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Headless Day 1 smoke: Worker + Vite + evenhub-simulator.
+// Headless smoke: Worker + Vite + evenhub-simulator (Day 3: confirm + paper fill).
 // Asserts boot, live Polymarket + Hyperliquid numbers, lit pixels, and
 // a framebuffer change after double-tap (system exit dialog).
 
@@ -201,7 +201,7 @@ async function main() {
   }
 
   console.log('[smoke] starting worker')
-  spawnLogged('worker', 'npx', ['wrangler', 'dev', '--port', '8787', '--ip', '127.0.0.1'], {
+  spawnLogged('worker', 'npx', ['wrangler', 'dev', '--port', '8787', '--ip', '127.0.0.1', '--local'], {
     cwd: WORKER,
     env: { ...process.env, FORCE_COLOR: '0' },
   })
@@ -248,6 +248,27 @@ async function main() {
   if (st.status !== 'pending') throw new Error(`expected pending pairing, got ${st.status}`)
   writeFileSync(join(OUT, 'pairing.json'), JSON.stringify({ code_len: pair.code.length, status: st.status }, null, 2) + '\n')
   console.log('[smoke] pairing pending, code length', pair.code.length)
+
+  const intent = await (await fetch(`${API}/intent`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text: 'buy up five' }),
+  })).json()
+  if (!intent.intent || intent.intent.kind !== 'trade' || intent.intent.side !== 'UP' || intent.intent.sizeUsd !== 5) {
+    throw new Error('POST /intent did not parse buy up five')
+  }
+  console.log('[smoke] intent ok', intent.intent.kind, intent.intent.side, intent.intent.sizeUsd)
+
+  const fill = await (await fetch(`${API}/paper/fill`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ owner: 'smoke-day3', market: 'btc-15m', side: 'UP', sizeUsd: 5, price: glance.market.upMid }),
+  })).json()
+  if (!fill.fill || !fill.fill.id) throw new Error('POST /paper/fill failed: ' + JSON.stringify(fill))
+  const positions = await getJson(`${API}/positions?owner=smoke-day3`)
+  if (!positions.count) throw new Error('paper fill did not show up in /positions')
+  writeFileSync(join(OUT, 'paper-fill.json'), JSON.stringify({ id_len: String(fill.fill.id).length, count: positions.count }, null, 2) + '\n')
+  console.log('[smoke] paper fill ok, positions', positions.count)
 
   console.log('[smoke] starting vite')
   spawnLogged('vite', 'npx', ['vite', '--host', '127.0.0.1', '--port', '5173'], {
@@ -331,6 +352,38 @@ async function main() {
   )
   console.log('[smoke] swipe ok')
 
+  await postJson(`${SIM}/api/input`, { action: 'click' })
+  await waitFor(
+    async () => {
+      const data = await getJson(`${SIM}/api/console?since_id=${sinceId}`)
+      for (const entry of data.entries ?? []) {
+        sinceId = Math.max(sinceId, entry.id)
+        allMsgs.push(entry)
+      }
+      return consoleMessages(allMsgs).includes('[edgeglass] screen confirm')
+    },
+    { timeoutMs: 10_000, label: '[edgeglass] screen confirm' },
+  )
+  console.log('[smoke] confirm screen ok')
+  await sleep(400)
+  const confirmPng = await getBuf(`${SIM}/api/screenshot/glasses`)
+  writeFileSync(join(OUT, 'confirm.png'), confirmPng)
+  await previewPng(join(OUT, 'confirm.png'), join(OUT, 'confirm-preview.png'))
+
+  await postJson(`${SIM}/api/input`, { action: 'click' })
+  await waitFor(
+    async () => {
+      const data = await getJson(`${SIM}/api/console?since_id=${sinceId}`)
+      for (const entry of data.entries ?? []) {
+        sinceId = Math.max(sinceId, entry.id)
+        allMsgs.push(entry)
+      }
+      return consoleMessages(allMsgs).includes('[edgeglass] paper filled')
+    },
+    { timeoutMs: 10_000, label: '[edgeglass] paper filled' },
+  )
+  console.log('[smoke] paper confirm filled')
+
   // Let the first upgrade paint.
   await sleep(800)
   const bootPng = await getBuf(`${SIM}/api/screenshot/glasses`)
@@ -374,7 +427,7 @@ async function main() {
     throw new Error('console contains uncaught errors:\n' + consoleDump)
   }
 
-  console.log('OK — EdgeGlass Day 1 smoke passed (feeds, 576x288 glance, exit dialog)')
+  console.log('OK — EdgeGlass Day 3 smoke passed (feeds, swipe, paper confirm, exit dialog)')
 }
 
 main()

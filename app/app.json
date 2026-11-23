@@ -14,6 +14,10 @@
         "http://localhost:8787",
         "https://edgeglass.merjkerm.workers.dev"
       ]
+    },
+    {
+      "name": "g2-microphone",
+      "desc": "Captures a short voice command from the glasses mic. Audio goes only to our worker for open-source Whisper; never to Telegram or an LLM."
     }
   ],
   "supported_languages": [

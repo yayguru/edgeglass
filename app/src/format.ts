@@ -1,6 +1,6 @@
-import type { GlancePayload, PositionsPayload } from './types'
+import type { ConfirmOrder, GlancePayload, PositionsPayload } from './types'
 
-const HINT = '> swipe markets · hold menu · tap paper later'
+const HINT = '> tap: paper $5 · hold: voice · swipe markets'
 const DISCLAIMER = 'Not financial advice · paper/testnet'
 
 export function loadingText(): string {
@@ -83,3 +83,24 @@ export function formatPairing(code: string, status: string): string {
 }
 
 export { DISCLAIMER }
+
+export function formatConfirm(order: ConfirmOrder, note?: string): string {
+  const head =
+    order.side === 'CLOSE'
+      ? `CLOSE ${order.sizeUsd === 0 ? 'ALL' : order.market} (paper)`
+      : `${order.side === 'DOWN' ? 'BUY DOWN' : 'BUY UP'} $${order.sizeUsd} @${order.price == null ? '--' : `${Math.round(order.price * 100)}c`} (paper)`
+  const loss = order.side === 'CLOSE' ? 'tap=confirm  swipe=cancel' : `max loss $${order.sizeUsd} · tap=confirm  swipe=cancel`
+  const src = order.source === 'voice' ? 'from voice · not advice' : 'Not financial advice · paper/testnet'
+  return `${head}\n${loss}\n${note || src}\n${DISCLAIMER}`
+}
+
+export function formatShareResult(ok: boolean, reason?: string): string {
+  if (ok) return `Sent to Telegram\nCurrent card posted to the linked chat.\n${DISCLAIMER}`
+  if (reason === 'unlinked' || reason === 'bad code') {
+    return `Not linked\nPair Telegram first, then send.\n${DISCLAIMER}`
+  }
+  if (reason === 'no-token') {
+    return `Telegram not configured on the worker yet.\nPairing still works locally.\n${DISCLAIMER}`
+  }
+  return `Send failed\n${reason || 'unknown'}\n${DISCLAIMER}`
+}
