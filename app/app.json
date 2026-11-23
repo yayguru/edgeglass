@@ -1,0 +1,19 @@
+{
+  "package_id": "com.yayguru.edgeglass",
+  "edition": "202601",
+  "name": "EdgeGlass",
+  "version": "0.1.0",
+  "min_sdk_version": "0.0.14",
+  "entrypoint": "index.html",
+  "permissions": [
+    {
+      "name": "network",
+      "desc": "Loads live Polymarket odds and Hyperliquid mids through the EdgeGlass worker only.",
+      "whitelist": [
+        "http://127.0.0.1:8787",
+        "http://localhost:8787"
+      ]
+    }
+  ],
+  "supported_languages": ["en"]
+}

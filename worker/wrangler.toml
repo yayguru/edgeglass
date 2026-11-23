@@ -1,0 +1,9 @@
+name = "edgeglass"
+main = "src/index.ts"
+compatibility_date = "2026-11-23"
+
+# Local D1 only for Day 1. No remote database is created or migrated yet.
+[[d1_databases]]
+binding = "DB"
+database_name = "edgeglass-dev"
+database_id = "local-edgeglass-dev"

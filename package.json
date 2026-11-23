@@ -1,0 +1,28 @@
+{
+  "name": "edgeglass",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Trading-session HUD for Polymarket 5m/15m Up/Down markets and Hyperliquid perps, on Even Realities G2 glasses.",
+  "workspaces": [
+    "app",
+    "worker"
+  ],
+  "scripts": {
+    "dev:app": "npm --workspace app run dev",
+    "dev:worker": "npm --workspace worker run dev",
+    "build": "npm --workspace app run build",
+    "pack": "npm --workspace app run pack",
+    "typecheck": "npm --workspace app run build -- --dry-run 2>/dev/null || npm --workspace app exec tsc --noEmit && npm --workspace worker exec tsc --noEmit",
+    "smoke": "node scripts/smoke.mjs"
+  },
+  "author": "yayguru",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "allowScripts": {
+    "esbuild@0.21.5": true,
+    "esbuild@0.28.2": true,
+    "workerd@1.20261119.1": true
+  }
+}

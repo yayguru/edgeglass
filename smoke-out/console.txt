@@ -1,0 +1,8 @@
+[EvenAppBridge] Bridge initialized
+[Simulator] Flutter Bridge intercepted: evenAppMessage
+[vite] connected.
+[ShadowTimers] setInterval id=1 delay=30000ms queued (queue=1)
+[edgeglass] page created: success
+[edgeglass] ready
+[ShadowTimers] setInterval id=2 delay=3000ms queued (queue=2)
+[edgeglass] glance live BTC 15m UP 0.255 HL 61186.5 slug btc-updown-15m-1795421700
