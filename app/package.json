@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "pack": "mkdir -p ../dist-pkg && npm run build && evenhub pack app.json dist --sdk-ver 0.0.16 -o ../dist-pkg/edgeglass-0.1.0.ehpk"
+    "pack": "mkdir -p ../dist-pkg && npm run build && evenhub pack app.json dist --sdk-ver 0.0.16 -o ../dist-pkg/edgeglass-0.2.0.ehpk"
   },
   "dependencies": {
     "@evenrealities/even_hub_sdk": "^0.0.16"

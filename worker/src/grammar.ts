@@ -39,6 +39,8 @@ function norm(raw: string): string {
   return raw
     .toLowerCase()
     .replace(/[^a-z0-9.$ ]+/g, ' ')
+    // Whisper ends sentences with a period ("Buy up 50.") — keep decimals only.
+    .replace(/\.(?!\d)/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
 }

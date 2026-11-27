@@ -1,21 +1,21 @@
 {
-  "asOf": 1795423148682,
+  "asOf": 1795774615010,
   "ranked": [
     {
-      "asOf": 1795423147805,
+      "asOf": 1795774613867,
       "market": {
         "key": "btc-15m",
         "coin": "BTC",
         "window": "15m",
-        "slug": "btc-updown-15m-1795422600",
-        "upMid": 0.905,
+        "slug": "btc-updown-15m-1795774500",
+        "upMid": 0.465,
         "upDelta1mCents": null,
-        "secondsLeft": 352,
-        "favored": "UP"
+        "secondsLeft": 786,
+        "favored": "DOWN"
       },
       "hyperliquid": {
         "coin": "BTC",
-        "mid": 61392.5,
+        "mid": 61639.5,
         "delta1mPct": null
       },
       "edgeCents": null,
@@ -28,20 +28,20 @@
       ]
     },
     {
-      "asOf": 1795423148682,
+      "asOf": 1795774615010,
       "market": {
         "key": "btc-5m",
         "coin": "BTC",
         "window": "5m",
-        "slug": "btc-updown-5m-1795422900",
-        "upMid": 0.175,
+        "slug": "btc-updown-5m-1795774500",
+        "upMid": 0.435,
         "upDelta1mCents": null,
-        "secondsLeft": 51,
+        "secondsLeft": 185,
         "favored": "DOWN"
       },
       "hyperliquid": {
         "coin": "BTC",
-        "mid": 61392.5,
+        "mid": 61639.5,
         "delta1mPct": null
       },
       "edgeCents": null,
@@ -54,20 +54,20 @@
       ]
     },
     {
-      "asOf": 1795423148682,
+      "asOf": 1795774615010,
       "market": {
         "key": "eth-15m",
         "coin": "ETH",
         "window": "15m",
-        "slug": "eth-updown-15m-1795422600",
-        "upMid": 0.695,
+        "slug": "eth-updown-15m-1795774500",
+        "upMid": 0.455,
         "upDelta1mCents": null,
-        "secondsLeft": 351,
-        "favored": "UP"
+        "secondsLeft": 785,
+        "favored": "DOWN"
       },
       "hyperliquid": {
         "coin": "ETH",
-        "mid": 1720.95,
+        "mid": 1727.35,
         "delta1mPct": null
       },
       "edgeCents": null,
@@ -80,20 +80,20 @@
       ]
     },
     {
-      "asOf": 1795423148682,
+      "asOf": 1795774615010,
       "market": {
         "key": "eth-5m",
         "coin": "ETH",
         "window": "5m",
-        "slug": "eth-updown-5m-1795422900",
-        "upMid": 0.0005,
+        "slug": "eth-updown-5m-1795774500",
+        "upMid": 0.355,
         "upDelta1mCents": null,
-        "secondsLeft": 51,
+        "secondsLeft": 185,
         "favored": "DOWN"
       },
       "hyperliquid": {
         "coin": "ETH",
-        "mid": 1720.95,
+        "mid": 1727.35,
         "delta1mPct": null
       },
       "edgeCents": null,

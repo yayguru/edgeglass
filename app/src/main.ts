@@ -19,6 +19,8 @@ import { eventTypeOf } from './events'
 import {
   errorText,
   formatConfirm,
+  formatListening,
+  formatTranscribing,
   formatGlance,
   formatMovedLines,
   formatPairing,
@@ -111,7 +113,7 @@ function defaultConfirm(source: ConfirmOrder['source'] = 'tap'): ConfirmOrder {
 
 function scheduleGlanceRender(content: string) {
   currentContent = content
-  if (screen !== 'glance') return
+  if (screen !== 'glance' || listening) return
   if (renderTimer !== null) return
   renderTimer = window.setTimeout(() => {
     renderTimer = null
@@ -215,7 +217,7 @@ async function confirmPaper() {
     price: pending.price,
   })
   if (result.error === 'cap') {
-    await paintConfirm(`cap $${result.spent}/${result.cap} today · swipe=cancel`)
+    await paintConfirm(`over daily cap: $${result.spent} of $${result.cap} used · swipe=cancel`)
     console.log('[edgeglass] paper cap')
     return
   }
@@ -292,6 +294,16 @@ async function applyIntent(intent: VoiceIntent, transcript: string) {
   await openConfirm(defaultConfirm('voice'), `unrecognized: ${transcript.slice(0, 40)}`)
 }
 
+// In-place status line while the mic is open (no page rebuild mid-gesture, so
+// the long-press release still lands on the same container).
+function showVoiceStatus(text: string) {
+  if (screen !== 'glance' && screen !== 'confirm' && screen !== 'pairing') return
+  lastRendered = ''
+  void bridge.textContainerUpgrade(
+    new TextContainerUpgrade({ containerID: 1, containerName: screen, content: text }),
+  )
+}
+
 async function startListen() {
   if (listening) return
   listening = true
@@ -301,6 +313,7 @@ async function startListen() {
   } catch (err) {
     console.warn('[edgeglass] audioControl on failed', err instanceof Error ? err.message : err)
   }
+  showVoiceStatus(formatListening())
   console.log('[edgeglass] listening')
 }
 
@@ -321,6 +334,7 @@ async function stopListenAndTranscribe() {
   }
   pcmChunks.length = 0
   console.log('[edgeglass] listen end', total, 'bytes')
+  if (total >= 3200) showVoiceStatus(formatTranscribing(total / 32000))
   if (total < 3200) {
     await openConfirm(defaultConfirm('voice'), 'no audio captured · tap to confirm default')
     return

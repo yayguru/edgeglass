@@ -17,3 +17,4 @@ smoke-out/exit-dialog-*ms*.png
 worker/.dev.vars
 worker/.webhook-secret
 .webhook-secret
+smoke-out/demo/

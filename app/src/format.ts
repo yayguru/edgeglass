@@ -90,7 +90,7 @@ export function formatConfirm(order: ConfirmOrder, note?: string): string {
       ? `CLOSE ${order.sizeUsd === 0 ? 'ALL' : order.market} (paper)`
       : `${order.side === 'DOWN' ? 'BUY DOWN' : 'BUY UP'} $${order.sizeUsd} @${order.price == null ? '--' : `${Math.round(order.price * 100)}c`} (paper)`
   const loss = order.side === 'CLOSE' ? 'tap=confirm  swipe=cancel' : `max loss $${order.sizeUsd} · tap=confirm  swipe=cancel`
-  const src = order.source === 'voice' ? 'from voice · not advice' : 'Not financial advice · paper/testnet'
+  const src = order.source === 'voice' ? 'from voice · nothing runs until tap' : 'paper ledger · daily cap $50'
   return `${head}\n${loss}\n${note || src}\n${DISCLAIMER}`
 }
 
@@ -103,4 +103,12 @@ export function formatShareResult(ok: boolean, reason?: string): string {
     return `Telegram not configured on the worker yet.\nPairing still works locally.\n${DISCLAIMER}`
   }
   return `Send failed\n${reason || 'unknown'}\n${DISCLAIMER}`
+}
+
+export function formatListening(): string {
+  return `● Listening…\nrelease to send\nsay: buy up five · long btc twenty · what moved\n${DISCLAIMER}`
+}
+
+export function formatTranscribing(seconds: number): string {
+  return `Transcribing ${seconds.toFixed(1)}s…\nopen-source Whisper on our worker · lands on confirm\n\n${DISCLAIMER}`
 }
