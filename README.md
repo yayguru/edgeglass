@@ -2,6 +2,8 @@
 
 A glance-first trading-session HUD for **Even Realities G2** glasses: **Polymarket** short-timeframe crypto Up/Down markets (BTC/ETH 5m and 15m) plus **Hyperliquid** perp mids, with **Telegram** (`@EdgeGlass_bot`) for pairing, alerts-when-closed, and read-only wallet links.
 
+**Live demo:** https://edgeglass.merjkerm.workers.dev (public Worker: live glance card + API, paper/read-only) · **Package:** `npm run pack` → `dist-pkg/edgeglass-0.2.0.ehpk` · **License:** MIT
+
 This is a hackathon build for [Even Realities G2 × DoraHacks](https://dorahacks.io/hackathon/even-realities/detail). Tracks: **02 Crypto & DeFi** (main) and **01 Messaging & News**.
 
 **Not financial advice.** Default write path is paper. No user funds, no mainnet deposits, no keys in the app or this repo.
@@ -34,10 +36,16 @@ Terminal C — glasses simulator (needs the official Even Hub simulator):
 npx evenhub-simulator http://127.0.0.1:5173
 ```
 
-Headless smoke (Xvfb + automation port; Linux with `libwebkit2gtk-4.1-0`):
+Offline checks (no network, no secrets; this is what CI-style reviewers should run):
 
 ```bash
-npm test && npm run smoke
+npm run build && npm run typecheck && npm test
+```
+
+Headless smoke (integration, **needs network** for the live Polymarket/Hyperliquid feeds and wrangler; Xvfb + automation port; Linux with `libwebkit2gtk-4.1-0`):
+
+```bash
+npm run smoke
 ```
 
 On the glasses: tap the glance card for a paper Confirm (default BUY UP $5 at the current mid; swipe or double-tap cancels, tap confirms). Long-press captures glasses PCM and sends it to our Worker for Whisper + a rule grammar; the result always lands on Confirm, never auto-fills. Swipe cycles BTC/ETH 5m/15m in "what moved" order. The contextual menu opens What moved, Positions, Pair Telegram, and Send to Telegram. Double-tap on the glance card opens the system exit dialog; on other screens it goes back.
@@ -113,8 +121,8 @@ A 22 Nov simulator smoke used **only the stock official template** and is **not*
 |---|---|
 | `npm run dev:worker` | Cloudflare Worker locally on :8787 |
 | `npm run dev:app` | Vite app on :5173 |
-| `npm test` | Command parser, edge heuristic, and voice-grammar unit tests |
-| `npm run smoke` | Headless simulator: boot, live feeds, swipe, paper Confirm, lit pixels, exit |
+| `npm test` | Command parser, edge heuristic, and voice-grammar unit tests (offline) |
+| `npm run smoke` | Integration, needs network: headless simulator boot, live feeds, swipe, paper Confirm, lit pixels, exit |
 | `npm run pack` | Production build (calls the public Worker) + `evenhub pack` → `dist-pkg/edgeglass-0.2.0.ehpk` |
 | `node scripts/demo-capture.mjs` | Records the demo: real app in the simulator against the production Worker, every glasses frame + an input timeline; voice via a virtual PulseAudio mic |
 | `node scripts/tg-poll.mjs` | Local Telegram long-poll → local worker webhook |

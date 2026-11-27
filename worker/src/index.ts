@@ -8,6 +8,7 @@ import { formatPositionLine, isEthAddress } from './positions-pm'
 import { shareCardToTelegram } from './share'
 import { transcribePcm } from './stt'
 import { handleTelegramUpdate, webhookSecretOk } from './telegram'
+import { LANDING_HTML } from './landing'
 import { DEFAULT_MARKET, DISCLAIMER, isMarketKey } from './types'
 
 const CORS: Record<string, string> = {
@@ -35,6 +36,10 @@ export default {
     }
 
     const url = new URL(request.url)
+
+    if ((url.pathname === '/' || url.pathname === '/index.html') && request.method === 'GET') {
+      return new Response(LANDING_HTML, { headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'public, max-age=300' } })
+    }
 
     if (url.pathname === '/health' && request.method === 'GET') {
       return json({
