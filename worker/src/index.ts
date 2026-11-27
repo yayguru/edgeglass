@@ -205,6 +205,16 @@ export default {
   },
 
   async scheduled(_event: unknown, env: Env, ctx: { waitUntil(p: Promise<unknown>): void }): Promise<void> {
-    ctx.waitUntil(tickAlerts(env).then(r => console.log('cron alerts', r.fired)))
+    // Sample all four markets twice a minute so a cold isolate always finds a
+    // ~60s baseline in D1 (1-minute deltas, "what moved"), even with no app open.
+    ctx.waitUntil(
+      (async () => {
+        await buildMarkets(env.DB).catch(() => null)
+        const r = await tickAlerts(env)
+        console.log('cron alerts', r.fired)
+        await new Promise(res => setTimeout(res, 30_000))
+        await buildMarkets(env.DB).catch(() => null)
+      })(),
+    )
   },
 }

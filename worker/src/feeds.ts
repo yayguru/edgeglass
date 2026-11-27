@@ -31,10 +31,13 @@ export async function buildGlance(db: D1Database | undefined, key: MarketKey, no
   const [pm, mids] = await Promise.all([quotePolymarket(spec, now), getMids()])
   const hlMid = mids[spec.coin] ?? null
 
-  await record(db, `pm:${key}:up`, pm.upMid, now)
+  // Key Polymarket history by window slug: a rolled-over window must not
+  // produce a fake 1-minute move against the previous window's close.
+  const pmKey = `pm:${pm.slug}:up`
+  await record(db, pmKey, pm.upMid, now)
   await record(db, `hl:${spec.coin}`, hlMid, now)
 
-  const upDelta1mCents = await deltaCents(db, `pm:${key}:up`, pm.upMid, now)
+  const upDelta1mCents = await deltaCents(db, pmKey, pm.upMid, now)
   const hlDelta1mPctRaw = await deltaPct(db, `hl:${spec.coin}`, hlMid, now)
   const hlDelta1mPct = hlDelta1mPctRaw === null ? null : Math.round(hlDelta1mPctRaw * 10) / 10
   const edge = edgeCents(pm.upMid, hlDelta1mPct)
